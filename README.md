@@ -1,40 +1,45 @@
 # 备份任务跟踪器
 
-用 Delphi 13 Community Edition 和 VCL 编写的 Windows 桌面项目，用来练习窗体设计、按钮事件、表格刷新和业务状态流转。
+Windows 桌面备份任务管理工具，基于 Delphi 13 和 VCL，用于登记任务、更新处理状态和查看进度统计。
 
-围绕备份任务登记场景，可以选择资源类型、记录任务、手动更新工作进度，并查看各状态的数量。程序不执行实际备份；记录仅保存在当前进程，关闭窗口后清空。
+## 功能
 
-## 打开与运行
+- 任务登记：记录任务名称、资源类型和创建时间。
+- 资源分类：支持文件、数据库和虚拟机三类资源。
+- 状态管理：按待处理、进行中、已完成更新任务状态。
+- 进度统计：显示任务总数及各状态的数量。
+- 记录移除：支持移除待处理和已完成的任务，保留进行中的记录。
 
-1. 在 Windows 安装 Delphi 13，并确认已安装 Windows VCL 开发组件。
-2. 用 Delphi 打开 `BackupTracker.dproj`。
-3. 选择 Windows 64 位、Debug 配置，按 **F9** 编译并运行。
-4. 默认生成位置为 `Win64/Debug/BackupTracker.exe`。
+任务名称不能为空，长度上限为 80 个字符。状态按 `待处理 → 进行中 → 已完成` 转换，不能跳过中间状态。
 
-若弹出 Compile 窗口并出现错误，程序尚未成功运行。打开 IDE 的 Messages／消息面板，双击第一条编译错误可定位代码行。
+应用负责备份工作的登记和进度跟踪，任务状态由使用者更新，备份作业由外部工具执行。当前版本使用内存存储，退出程序后记录清空。
 
-## 第一次操作
+## 运行环境
 
-1. 输入“业务数据库每日备份”，资源类型选择“数据库”。
-2. 点击“新增任务”，表格出现一项“待处理”记录。
-3. 选中记录，点击“标记进行中”。
-4. 点击“标记完成”，查看表格和统计数字变化。
-5. 点击“移除记录”，查看空状态。
+- Windows 64 位系统。
+- Delphi 13，安装 Windows VCL 组件及 Win32、Win64 目标平台。
 
-状态规则：`待处理 → 进行中 → 已完成`。进行中的记录禁止删除，任务不能跳过“进行中”直接完成。
+## 构建与运行
 
-## 亲手改一个按钮
+在 Delphi 中打开 `BackupTracker.dproj`，选择 **Win64 / Debug** 配置，构建工程后运行。生成文件位于：
 
-1. 关闭运行窗口，在 Delphi 打开 `MainForm.pas`，按 **F12** 切换到窗体设计器。
-2. 选中“新增任务”按钮，在对象查看器中把 `Caption` 改成“添加备份任务”；保留 `Name = AddButton`。
-3. 全部保存，按 **F9**，确认按钮文字变化。
-4. 回到设计器，双击按钮，进入 `AddButtonClick`，从这里阅读新增任务的数据流。
+```text
+Win64\Debug\BackupTracker.exe
+```
 
-`TaskNameEdit.Text`、`ResourceCombo.ItemIndex` → `AddButtonClick` → `TBackupTaskStore.Add` → `RefreshGrid` → 表格、统计和按钮状态。
+重新构建前需关闭正在运行的程序，避免输出文件被占用。
 
-`Name` 是代码使用的控件标识，`Caption` 是显示文字，`OnClick` 是点击事件；这些属性名称会保留英文。
+## 测试
 
-## 文件说明
+在 Delphi 中打开 `BackupTrackerTests.dproj`，使用默认的 **Win32 / Debug** 配置构建，然后在工程目录执行：
+
+```powershell
+& .\Win32\Debug\BackupTrackerTests.exe
+```
+
+测试包括任务名称校验、资源类型、状态转换、删除保护，以及窗体中的行选择、统计更新和空状态。通过时输出检查数量并返回退出码 `0`；失败时输出 `FAILED:` 和错误信息，返回非零退出码。
+
+## 项目结构
 
 | 文件 | 作用 |
 | --- | --- |
@@ -42,33 +47,20 @@
 | `MainForm.dfm` | 控件布局、属性和事件绑定 |
 | `MainForm.pas` | 输入处理、表格刷新、按钮状态和反馈 |
 | `BackupTasks.pas` | 任务记录、输入校验和状态流转规则 |
-| `BackupTrackerTests.dpr` / `.dproj` | 业务规则与实际 VCL 窗体检查 |
-| `remote.sh` / `remote.ps1` | Mac 通过 SSH 同步、打开、构建和运行 Windows 工程 |
+| `BackupTrackerTests.dpr` / `.dproj` | 业务规则和 VCL 窗体测试 |
+| `remote.sh` / `remote.ps1` | SSH 文件同步、构建和运行脚本 |
 
-业务规则集中在 `TBackupTaskStore`，窗体负责收集输入和显示结果。资源类型包括文件、数据库和虚拟机，任务名称最多 80 个字符。
+`TBackupTaskStore` 管理任务数据和状态规则，窗体负责输入处理与界面更新。
 
-## 功能检查
+## 远程开发
 
-在 Delphi 中打开 `BackupTrackerTests.dproj`，使用工程默认的 Win32 / Debug 配置编译。生成后从 Windows PowerShell 运行：
+`remote.sh` 通过 SSH 调用 Windows 上的 `remote.ps1`。默认配置如下：
 
-```powershell
-& .\Win32\Debug\BackupTrackerTests.exe
-```
-
-成功时输出 `N checks passed`，失败时输出 `FAILED:` 并返回非零退出码。检查涵盖中文输入、空输入、名称长度、非法状态转换、删除保护、行选择、统计和空状态。
-
-检查完成后，重新打开 `BackupTracker.dproj` 继续练习。
-
-### 已验证范围（2026-10-17）
-
-- Win64 / Debug 主程序编译成功，并已在 Windows 交互桌面启动。
-- Win32 / Debug 检查程序输出 **`77 checks passed`**，退出码为 0。
-- Mac 和 Windows 对应的源码、工程配置与远程脚本哈希一致。
-- 未统计代码覆盖率，尚未进行屏幕画面的视觉核验。
-
-## 从 Mac 远程操作
-
-这些脚本使用已有的 SSH 别名 `win-delphi`，Windows 工程目录为 `E:\Projects\delphi-backup-tracker`，Delphi 安装目录为 `C:\Program Files (x86)\Embarcadero\Studio\37.0`。在其他机器上使用时，先调整脚本中的路径，并自行配置 SSH 密钥登录。
+| 配置 | 默认值 |
+| --- | --- |
+| SSH 主机别名 | `win-delphi`，可通过 `DELPHI_SSH_HOST` 覆盖 |
+| Windows 工程目录 | `E:\Projects\delphi-backup-tracker` |
+| IDE 构建入口 | `C:\Program Files (x86)\Embarcadero\Studio\37.0\bin\bds.exe` |
 
 ```sh
 ./remote.sh status
@@ -78,10 +70,6 @@
 ./remote.sh run
 ```
 
-`build` 和 `test` 使用已验证的 `bin\bds.exe` 自动构建入口，要求 Windows 当前账号已登录桌面。主程序输出 Win64，检查程序输出 Win32，脚本分别读取各自工程的默认平台和配置。`run` 的窗口显示在 Windows；SSH 仅传输文件和执行操作。自动构建若超时，会保留 IDE 以便查看提示；超时不代表编译成功。
+使用前需配置 SSH 密钥登录，并按实际环境调整脚本路径。构建依赖 Windows 当前用户的交互桌面会话，运行窗口也显示在 Windows。脚本从各自工程配置中读取默认平台和配置，并核对构建日志与生成文件。
 
-`./remote.sh sync` 会把 Mac 源码写入 Windows。若在 Windows 设计器中做过修改，先全部保存并取回改动，再同步，避免覆盖练习内容。重建前先关闭运行程序。
-
-## 版本管理范围
-
-仓库保存 Pascal 源码、文本窗体、工程配置、检查程序、脚本和本说明。编译产物、IDE 自动恢复文件、日志和本机配置由 `.gitignore` 排除。安装器、许可证和账号凭证不属于工程文件。
+`./remote.sh sync` 会覆盖 Windows 端对应源文件。在 Windows IDE 中修改后，应先保存并取回文件，再执行同步。
