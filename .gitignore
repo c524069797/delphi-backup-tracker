@@ -1,0 +1,15 @@
+*.dcu
+*.exe
+*.res
+*.vrc
+*.dproj.local
+*.identcache
+*.dsk
+*.err
+*.out
+*.log
+__history/
+__recovery/
+.logs/
+Win32/
+Win64/
